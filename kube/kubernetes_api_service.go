@@ -20,10 +20,17 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	EPHEMERAL_CONTAINER_NAME = "ksniff-ephemeral"
+	TCPDUMP_IMAGE            = "maintained/tcpdump"
+)
+
 type KubernetesApiService interface {
 	ExecuteCommand(podName string, containerName string, command []string, stdOut io.Writer) (int, error)
 
 	DeletePod(podName string) error
+
+	CreateEphemeralContainer(podName string) (*corev1.Pod, error)
 
 	CreatePrivilegedPod(nodeName string, containerName string, image string, socketPath string, timeout time.Duration, serviceaccount string) (*corev1.Pod, error)
 
@@ -100,6 +107,54 @@ func (k *KubernetesApiServiceImpl) DeletePod(podName string) error {
 	})
 
 	return err
+}
+
+func (k *KubernetesApiServiceImpl) CreateEphemeralContainer(podName string) (*corev1.Pod, error) {
+	pod, err := k.clientset.CoreV1().Pods(k.targetNamespace).Get(context.TODO(), podName, v1.GetOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("get pod: %v", err))
+	}
+	ephemeralContainer := corev1.EphemeralContainer{
+		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
+			Name:            EPHEMERAL_CONTAINER_NAME,
+			Image:           TCPDUMP_IMAGE,
+			ImagePullPolicy: "IfNotPresent",
+			Command: []string{
+				"sleep",
+				"99999999",
+			},
+		},
+	}
+	pod.Spec.EphemeralContainers = append(pod.Spec.EphemeralContainers, ephemeralContainer)
+	podServer, err := k.clientset.CoreV1().Pods(k.targetNamespace).UpdateEphemeralContainers(context.TODO(), podName, pod, v1.UpdateOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("update ephemeral containers: %v", err))
+	}
+	verifyEphemeralContainerState := func() bool {
+		podStatus, err := k.clientset.CoreV1().Pods(k.targetNamespace).Get(context.TODO(), podName, v1.GetOptions{})
+		if err != nil {
+			return false
+		}
+
+		for _, ephemeralContainerStatus := range podStatus.Status.EphemeralContainerStatuses {
+			if ephemeralContainerStatus.Name != EPHEMERAL_CONTAINER_NAME {
+				continue
+			}
+		}
+
+		time.Sleep(10 * time.Second)
+
+		return true // TODO: make this actually work
+	}
+
+	log.Info("waiting for pod successful startup")
+
+	timeout := 30 * time.Second
+	if !utils.RunWhileFalse(verifyEphemeralContainerState, timeout, 1*time.Second) {
+		return nil, errors.Errorf("failed to create ephemeral container within timeout (%s)", timeout)
+	}
+	return podServer, nil
+
 }
 
 func (k *KubernetesApiServiceImpl) CreatePrivilegedPod(nodeName string, containerName string, image string, socketPath string, timeout time.Duration, serviceaccount string) (*corev1.Pod, error) {
