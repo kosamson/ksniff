@@ -2,6 +2,7 @@ package kube
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"path"
@@ -132,7 +133,7 @@ func PodExecuteCommand(req ExecCommandRequest) (int, error) {
 		return 0, err
 	}
 
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.TODO(), remotecommand.StreamOptions{
 		Stdin:  req.StdIn,
 		Stdout: req.StdOut,
 		Stderr: req.StdErr,
