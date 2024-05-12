@@ -127,7 +127,7 @@ func PodExecuteCommand(req ExecCommandRequest) (int, error) {
 		TTY:       false,
 	}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(req.RestConfig, "POST", execRequest.URL())
+	exec, err := remotecommand.NewWebSocketExecutor(req.RestConfig, "POST", execRequest.URL().String())
 	if err != nil {
 		return 0, err
 	}
