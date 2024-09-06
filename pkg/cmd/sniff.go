@@ -126,6 +126,11 @@ func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 	_ = viper.BindEnv("privileged", "KUBECTL_PLUGINS_LOCAL_FLAG_PRIVILEGED")
 	_ = viper.BindPFlag("privileged", cmd.Flags().Lookup("privileged"))
 
+	cmd.Flags().BoolVarP(&ksniffSettings.UserSpecifiedEphemeralContainerMode, "ephemeral-container", "", false,
+		"if specified, ksniff will deploy an ephemeral container into the specified pod and upload the static tcpdump binary there for sniffing")
+	_ = viper.BindEnv("ephemeral-container", "KUBECTL_PLUGINS_LOCAL_FLAG_EPHEMERAL_CONTAINER")
+	_ = viper.BindPFlag("ephemeral-container", cmd.Flags().Lookup("ephemeral-container"))
+
 	cmd.Flags().DurationVarP(&ksniffSettings.UserSpecifiedPodCreateTimeout, "pod-creation-timeout", "",
 		1*time.Minute, "the length of time to wait for privileged pod to be created (e.g. 20s, 2m, 1h). "+
 			"A value of zero means the creation never times out.")
@@ -179,6 +184,7 @@ func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
 	o.settings.UserSpecifiedRemoteTcpdumpPath = viper.GetString("remote-tcpdump-path")
 	o.settings.UserSpecifiedVerboseMode = viper.GetBool("verbose")
 	o.settings.UserSpecifiedPrivilegedMode = viper.GetBool("privileged")
+	o.settings.UserSpecifiedEphemeralContainerMode = viper.GetBool("ephemeral-container")
 	o.settings.UserSpecifiedKubeContext = viper.GetString("context")
 	o.settings.Image = viper.GetString("image")
 	o.settings.TCPDumpImage = viper.GetString("tcpdump-image")
@@ -321,6 +327,9 @@ func (o *Ksniff) Validate() error {
 		log.Info("sniffing method: privileged pod")
 		bridge := runtime.NewContainerRuntimeBridge(o.settings.DetectedContainerRuntime)
 		o.snifferService = sniffer.NewPrivilegedPodRemoteSniffingService(o.settings, kubernetesApiService, bridge)
+	} else if o.settings.UserSpecifiedEphemeralContainerMode {
+		log.Info("sniffing method: ephemeral container")
+		o.snifferService = sniffer.NewEphemeralContainerSniffingService(o.settings, kubernetesApiService)
 	} else {
 		log.Info("sniffing method: upload static tcpdump")
 		o.snifferService = sniffer.NewUploadTcpdumpRemoteSniffingService(o.settings, kubernetesApiService)

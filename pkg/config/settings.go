@@ -7,29 +7,30 @@ import (
 )
 
 type KsniffSettings struct {
-	UserSpecifiedPodName           string
-	UserSpecifiedInterface         string
-	UserSpecifiedFilter            string
-	UserSpecifiedPodCreateTimeout  time.Duration
-	UserSpecifiedContainer         string
-	UserSpecifiedNamespace         string
-	UserSpecifiedOutputFile        string
-	UserSpecifiedLocalTcpdumpPath  string
-	UserSpecifiedRemoteTcpdumpPath string
-	UserSpecifiedVerboseMode       bool
-	UserSpecifiedPrivilegedMode    bool
-	UserSpecifiedImage             string
-	DetectedPodNodeName            string
-	DetectedContainerId            string
-	DetectedContainerRuntime       string
-	Image                          string
-	TCPDumpImage                   string
-	UseDefaultImage                bool
-	UseDefaultTCPDumpImage         bool
-	UserSpecifiedKubeContext       string
-	SocketPath                     string
-	UseDefaultSocketPath           bool
-	UserSpecifiedServiceAccount    string
+	UserSpecifiedPodName                string
+	UserSpecifiedInterface              string
+	UserSpecifiedFilter                 string
+	UserSpecifiedPodCreateTimeout       time.Duration
+	UserSpecifiedContainer              string
+	UserSpecifiedNamespace              string
+	UserSpecifiedOutputFile             string
+	UserSpecifiedLocalTcpdumpPath       string
+	UserSpecifiedRemoteTcpdumpPath      string
+	UserSpecifiedVerboseMode            bool
+	UserSpecifiedPrivilegedMode         bool
+	UserSpecifiedEphemeralContainerMode bool
+	UserSpecifiedImage                  string
+	DetectedPodNodeName                 string
+	DetectedContainerId                 string
+	DetectedContainerRuntime            string
+	Image                               string
+	TCPDumpImage                        string
+	UseDefaultImage                     bool
+	UseDefaultTCPDumpImage              bool
+	UserSpecifiedKubeContext            string
+	SocketPath                          string
+	UseDefaultSocketPath                bool
+	UserSpecifiedServiceAccount         string
 }
 
 func NewKsniffSettings(streams genericclioptions.IOStreams) *KsniffSettings {
