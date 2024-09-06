@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+
 	"ksniff/utils"
 )
 
@@ -30,10 +31,10 @@ func (d ContainerdBridge) GetDefaultSocketPath() string {
 	return "/run/containerd/containerd.sock"
 }
 
-func (d *ContainerdBridge) BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string {
+func (d *ContainerdBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
 	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
-	d.socketPath = socketPath
-	tcpdumpCommand := fmt.Sprintf("tcpdump -i %s -U -w - %s", netInterface, filter)
+	d.socketPath = args.SocketPath
+	tcpdumpCommand := fmt.Sprintf("tcpdump -i %s -U -w - %s", args.NetInterface, args.Filter)
 	shellScript := fmt.Sprintf(`
     set -ex
     export CONTAINERD_SOCKET="%s"
@@ -43,7 +44,7 @@ func (d *ContainerdBridge) BuildTcpdumpCommand(containerId *string, netInterface
     crictl pull %s >/dev/null
     netns=$(crictl inspect %s | jq '.info.runtimeSpec.linux.namespaces[] | select(.type == "network") | .path' | tr -d '"')
     exec chroot /host ctr -a ${CONTAINERD_SOCKET} run --rm --with-ns "network:${netns}" %s %s %s 
-    `, d.socketPath, tcpdumpImage, *containerId, tcpdumpImage, d.tcpdumpContainerName, tcpdumpCommand)
+    `, d.socketPath, args.TcpdumpImage, *args.ContainerId, args.TcpdumpImage, d.tcpdumpContainerName, tcpdumpCommand)
 	command := []string{"/bin/sh", "-c", shellScript}
 	return command
 }

@@ -7,8 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type CrioBridge struct {
-}
+type CrioBridge struct{}
 
 func NewCrioBridge() *CrioBridge {
 	return &CrioBridge{}
@@ -19,8 +18,10 @@ func (c *CrioBridge) NeedsPid() bool {
 }
 
 func (c *CrioBridge) BuildInspectCommand(containerId string) []string {
-	return []string{"chroot", "/host", "crictl", "inspect",
-		"--output", "json", containerId}
+	return []string{
+		"chroot", "/host", "crictl", "inspect",
+		"--output", "json", containerId,
+	}
 }
 
 func (c *CrioBridge) ExtractPid(inspection string) (*string, error) {
@@ -52,8 +53,21 @@ func (c *CrioBridge) ExtractPid(inspection string) (*string, error) {
 	return &ret, nil
 }
 
-func (c *CrioBridge) BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string {
-	return []string{"nsenter", "-n", "-t", *pid, "--", "tcpdump", "-i", netInterface, "-U", "-w", "-", filter}
+func (c *CrioBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
+	return []string{
+		"nsenter",
+		"-n",
+		"-t",
+		*args.Pid,
+		"--",
+		"tcpdump",
+		"-i",
+		args.NetInterface,
+		"-U",
+		"-w",
+		"-",
+		args.Filter,
+	}
 }
 
 func (c *CrioBridge) BuildCleanupCommand() []string {

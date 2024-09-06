@@ -18,27 +18,33 @@ func TestInspectCommand(t *testing.T) {
 
 func TestPrivilegedPodName(t *testing.T) {
 	bridge := NewDockerBridge()
-	var containerId = "container"
-	var netInterface = "eth0"
-	var filter = "filter"
-	var pid = "pid"
-	var path = "/path"
-	var tcpdumpImage = bridge.GetDefaultTCPImage()
-	bridge.BuildTcpdumpCommand(&containerId, netInterface, filter, &pid, path, tcpdumpImage)
+	args := TcpDumpArguments{
+		ContainerId:  stringPtr("container"),
+		NetInterface: "eth0",
+		Filter:       "filter",
+		Pid:          stringPtr("pid"),
+		SocketPath:   "/path",
+		TcpdumpImage: bridge.GetDefaultTCPImage(),
+	}
+	bridge.BuildTcpdumpCommand(args)
 	assert.NotEqual(t, "", bridge.tcpdumpContainerName, "tcpdumpContainerName should have been set")
 }
 
 func TestCleanupCommand(t *testing.T) {
 	bridge := NewDockerBridge()
-	var containerId = "container"
-	var netInterface = "eth0"
-	var filter = "filter"
-	var pid = "pid"
-	var socketPath = "/path"
-	var tcpdumpImage = bridge.GetDefaultTCPImage()
-	bridge.BuildTcpdumpCommand(&containerId, netInterface, filter, &pid, socketPath, tcpdumpImage)
+
+	args := TcpDumpArguments{
+		ContainerId:  stringPtr("container"),
+		NetInterface: "eth0",
+		Filter:       "filter",
+		Pid:          stringPtr("pid"),
+		SocketPath:   "/path",
+		TcpdumpImage: bridge.GetDefaultTCPImage(),
+	}
+
+	bridge.BuildTcpdumpCommand(args)
 	assert.Equal(t,
-		[]string{"docker", "--host", "unix://" + socketPath, "rm", "-f", bridge.tcpdumpContainerName},
+		[]string{"docker", "--host", "unix://" + args.SocketPath, "rm", "-f", bridge.tcpdumpContainerName},
 		bridge.BuildCleanupCommand(),
 		"container cleanup command doesn't match")
 }

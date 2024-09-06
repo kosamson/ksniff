@@ -105,14 +105,16 @@ func (p *PrivilegedPodSnifferService) Cleanup() error {
 func (p *PrivilegedPodSnifferService) Start(stdOut io.Writer) error {
 	log.Info("starting remote sniffing using privileged pod")
 
-	command := p.runtimeBridge.BuildTcpdumpCommand(
-		&p.settings.DetectedContainerId,
-		p.settings.UserSpecifiedInterface,
-		p.settings.UserSpecifiedFilter,
-		p.targetProcessId,
-		p.settings.SocketPath,
-		p.settings.TCPDumpImage,
-	)
+	args := runtime.TcpDumpArguments{
+		ContainerId:  &p.settings.DetectedContainerId,
+		NetInterface: p.settings.UserSpecifiedInterface,
+		Filter:       p.settings.UserSpecifiedFilter,
+		Pid:          p.targetProcessId,
+		SocketPath:   p.settings.SocketPath,
+		TcpdumpImage: p.settings.TCPDumpImage,
+	}
+
+	command := p.runtimeBridge.BuildTcpdumpCommand(args)
 
 	exitCode, err := p.kubernetesApiService.ExecuteCommand(p.privilegedPod.Name, p.privilegedContainerName, command, stdOut)
 	if err != nil {
