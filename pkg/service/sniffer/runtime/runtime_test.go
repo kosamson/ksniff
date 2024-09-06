@@ -11,6 +11,11 @@ func TestNewContainerRuntimeBridge_Docker(t *testing.T) {
 	assert.IsType(t, &DockerBridge{}, bridge)
 }
 
+func TestNewContainerRuntimeBridge_Containerd(t *testing.T) {
+	bridge := NewContainerRuntimeBridge("containerd")
+	assert.IsType(t, &ContainerdBridge{}, bridge)
+}
+
 func TestNewContainerRuntimeBridge_Crio(t *testing.T) {
 	bridge := NewContainerRuntimeBridge("cri-o")
 	assert.IsType(t, &CrioBridge{}, bridge)
