@@ -28,7 +28,7 @@ func (d *DockerBridge) ExtractPid(inspection string) (*string, error) {
 }
 
 func (d *DockerBridge) BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string {
-	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
+	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
 	containerNameFlag := fmt.Sprintf("--name=%s", d.tcpdumpContainerName)
 
 	command := []string{"docker", "--host", "unix://" + socketPath,

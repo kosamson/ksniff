@@ -2,8 +2,6 @@ package utils
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -39,28 +37,21 @@ func RunWhileFalse(fn func() bool, timeout time.Duration, delay time.Duration) b
 	}
 }
 
-func GenerateRandomString(length int) string {
-	if randStr, err := generateRandomStringSeeded(nil, length); err != nil {
-		panic(fmt.Sprintf("could not generate random string: %v", err))
-	} else {
-		return randStr
-	}
-}
-
-func generateRandomStringSeeded(seed *int64, length int) (string, error) {
+func GenerateRandomString(random *rand.Rand, length int) string {
 	if length < 0 {
-		return "", errors.New("requested length of random string must be greater than or equal to zero")
+		panic("length of random string must be greater than or equal to zero")
 	}
-	var randomIntGenerator func(int) int
-	if seed != nil {
-		randomIntGenerator = rand.New(rand.NewSource(*seed)).Intn
-	} else {
-		randomIntGenerator = rand.Intn
+
+	if random == nil {
+		random = rand.New(rand.NewSource(time.Now().Unix()))
 	}
+
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, length)
+
 	for i := range b {
-		b[i] = letterRunes[randomIntGenerator(len(letterRunes))]
+		b[i] = letterRunes[random.Intn(len(letterRunes))]
 	}
-	return string(b), nil
+
+	return string(b)
 }

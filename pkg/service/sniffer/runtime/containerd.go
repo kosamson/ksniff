@@ -7,7 +7,7 @@ import (
 
 type ContainerdBridge struct {
 	tcpdumpContainerName string
-	socketPath string
+	socketPath           string
 }
 
 func NewContainerdBridge() *ContainerdBridge {
@@ -31,7 +31,7 @@ func (d ContainerdBridge) GetDefaultSocketPath() string {
 }
 
 func (d *ContainerdBridge) BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string {
-	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
+	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
 	d.socketPath = socketPath
 	tcpdumpCommand := fmt.Sprintf("tcpdump -i %s -U -w - %s", netInterface, filter)
 	shellScript := fmt.Sprintf(`

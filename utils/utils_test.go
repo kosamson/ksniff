@@ -2,7 +2,7 @@ package utils
 
 import (
 	"context"
-	"errors"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -77,16 +77,18 @@ func TestRunWhileFalse_1SecTimeoutTrue(t *testing.T) {
 }
 
 func TestGenerateRandomString(t *testing.T) {
+	randSeed := int64(1)
 	assert := assert.New(t)
 	testCases := []struct {
 		name            string
 		inputLength     int
+		expectedOutput  string
 		expectedToPanic bool
 	}{
-		{"zero-length random string", 0, false},
-		{"single character random string", 1, false},
-		{"multi-character random string", 5, false},
-		{"invalid negative input length", -1, true},
+		{"zero-length random string", 0, "", false},
+		{"single character random string", 1, "X", false},
+		{"multi-character random string", 5, "XVlBz", false},
+		{"invalid negative input length", -1, "", true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -97,31 +99,8 @@ func TestGenerateRandomString(t *testing.T) {
 					assert.Nil(r, "expected goroutine not to panic")
 				}
 			}()
-			actualOutput := GenerateRandomString(tc.inputLength)
-			assert.Len(actualOutput, tc.inputLength)
-		})
-	}
-}
-
-func TestGenerateRandomStringSeeded(t *testing.T) {
-	randSeed := int64(1)
-	assert := assert.New(t)
-	testCases := []struct {
-		name           string
-		inputLength    int
-		expectedOutput string
-		expectedErr    error
-	}{
-		{"zero-length random string", 0, "", nil},
-		{"single character random string", 1, "X", nil},
-		{"multi-character random string", 5, "XVlBz", nil},
-		{"invalid negative input length", -1, "", errors.New("requested length of random string must be greater than or equal to zero")},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actualOutput, actualError := generateRandomStringSeeded(&randSeed, tc.inputLength)
+			actualOutput := GenerateRandomString(rand.New(rand.NewSource(randSeed)), tc.inputLength)
 			assert.Equal(tc.expectedOutput, actualOutput)
-			assert.Equal(tc.expectedErr, actualError)
 		})
 	}
 }
