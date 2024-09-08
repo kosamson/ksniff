@@ -21,7 +21,11 @@ type PrivilegedPodSnifferService struct {
 	runtimeBridge           runtime.ContainerRuntimeBridge
 }
 
-func NewPrivilegedPodRemoteSniffingService(options *config.KsniffSettings, service kube.KubernetesApiService, bridge runtime.ContainerRuntimeBridge) SnifferService {
+func NewPrivilegedPodRemoteSniffingService(
+	options *config.KsniffSettings,
+	service kube.KubernetesApiService,
+	bridge runtime.ContainerRuntimeBridge,
+) *PrivilegedPodSnifferService {
 	return &PrivilegedPodSnifferService{
 		settings:                options,
 		privilegedContainerName: "ksniff-privileged",
