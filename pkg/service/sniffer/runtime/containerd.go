@@ -7,8 +7,8 @@ import (
 )
 
 type ContainerdBridge struct {
-	tcpdumpContainerName string
-	socketPath           string
+	TcpdumpContainerName string
+	SocketPath           string
 }
 
 func NewContainerdBridge() *ContainerdBridge {
@@ -32,8 +32,11 @@ func (d ContainerdBridge) GetDefaultSocketPath() string {
 }
 
 func (d *ContainerdBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
-	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
-	d.socketPath = args.SocketPath
+	if d.TcpdumpContainerName == "" {
+		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
+	}
+
+	d.SocketPath = args.SocketPath
 	tcpdumpCommand := fmt.Sprintf("tcpdump -i %s -U -w - %s", args.NetInterface, args.Filter)
 	shellScript := fmt.Sprintf(`
     set -ex
@@ -43,8 +46,7 @@ func (d *ContainerdBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
     export IMAGE_SERVICE_ENDPOINT=${CONTAINER_RUNTIME_ENDPOINT}
     crictl pull %s >/dev/null
     netns=$(crictl inspect %s | jq '.info.runtimeSpec.linux.namespaces[] | select(.type == "network") | .path' | tr -d '"')
-    exec chroot /host ctr -a ${CONTAINERD_SOCKET} run --rm --with-ns "network:${netns}" %s %s %s 
-    `, d.socketPath, args.TcpdumpImage, *args.ContainerId, args.TcpdumpImage, d.tcpdumpContainerName, tcpdumpCommand)
+    exec chroot /host ctr -a ${CONTAINERD_SOCKET} run --rm --with-ns "network:${netns}" %s %s %s`, d.SocketPath, args.TcpdumpImage, *args.ContainerId, args.TcpdumpImage, d.TcpdumpContainerName, tcpdumpCommand)
 	command := []string{"/bin/sh", "-c", shellScript}
 	return command
 }
@@ -55,8 +57,7 @@ func (d *ContainerdBridge) BuildCleanupCommand() []string {
     export CONTAINERD_SOCKET="%s"
     export CONTAINERD_NAMESPACE="k8s.io"
     export CONTAINER_ID="%s"
-    chroot /host ctr -a ${CONTAINERD_SOCKET} task kill -s SIGKILL ${CONTAINER_ID}
-    `, d.socketPath, d.tcpdumpContainerName)
+    chroot /host ctr -a ${CONTAINERD_SOCKET} task kill -s SIGKILL ${CONTAINER_ID}`, d.SocketPath, d.TcpdumpContainerName)
 	command := []string{"/bin/sh", "-c", shellScript}
 	return command
 }

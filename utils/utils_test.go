@@ -70,17 +70,15 @@ func TestRunWhileFalse_NoTimeout(t *testing.T) {
 func TestRunWhileFalse_1SecTimeoutTrue(t *testing.T) {
 	t.Parallel()
 
-	// given
 	ret := false
 	f := func() bool {
 		return ret
 	}
+
 	time.AfterFunc(1*time.Second, func() { ret = true })
 
-	// when
 	result := RunWhileFalse(f, 5*time.Second, time.Second)
 
-	// then
 	assert.True(t, result)
 }
 
@@ -100,6 +98,7 @@ func TestGenerateRandomString(t *testing.T) {
 		{"multi-character random string", 5, "XVlBz", false},
 		{"invalid negative input length", -1, "", true},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -111,7 +110,9 @@ func TestGenerateRandomString(t *testing.T) {
 					assert.Nil(r, "expected goroutine not to panic")
 				}
 			}()
+
 			actualOutput := GenerateRandomString(rand.New(rand.NewSource(randSeed)), tc.inputLength)
+
 			assert.Equal(tc.expectedOutput, actualOutput)
 		})
 	}
