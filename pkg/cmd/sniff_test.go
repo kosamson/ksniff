@@ -1,17 +1,19 @@
 package cmd
 
 import (
-	"ksniff/pkg/config"
 	"strings"
+	"testing"
+
+	"ksniff/pkg/config"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-
-	"testing"
 )
 
 func TestComplete_NotEnoughArguments(t *testing.T) {
+	t.Parallel()
+
 	// given
 	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
 	sniff := NewKsniff(settings)
@@ -27,6 +29,8 @@ func TestComplete_NotEnoughArguments(t *testing.T) {
 }
 
 func TestComplete_EmptyPodName(t *testing.T) {
+	t.Parallel()
+
 	// given
 	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
 	sniff := NewKsniff(settings)
@@ -42,6 +46,8 @@ func TestComplete_EmptyPodName(t *testing.T) {
 }
 
 func TestComplete_PodNameSpecified(t *testing.T) {
+	t.Parallel()
+
 	// given
 	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
 	sniff := NewKsniff(settings)
