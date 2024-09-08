@@ -185,9 +185,9 @@ func TestExtractPid_Crio(t *testing.T) {
 			extractedPid, err := bridge.ExtractPid(testCase.inputInspectData)
 
 			if testCase.expectErr {
-				assert.NotNil(err)
+				assert.Error(err)
 			} else {
-				assert.Nil(err)
+				assert.NoError(err)
 			}
 
 			assert.Equal(testCase.expectedPid, extractedPid)
