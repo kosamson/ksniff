@@ -69,7 +69,7 @@ func (u *StaticTcpdumpSnifferService) Start(stdOut io.Writer) error {
 		stdOut,
 	)
 	if err != nil || exitCode != 0 {
-		return errors.Errorf("executing sniffer failed, exit code: '%d'", exitCode)
+		return errors.Errorf("executing sniffer failed, exit code: '%d', err: '%s'", exitCode, err)
 	}
 
 	log.Infof("done sniffing on remote container")

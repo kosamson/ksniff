@@ -204,6 +204,20 @@ func TestSetup_Privileged(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name:     "sad path, k8s api svc returns non-zero exit code on ExecuteCommand",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				createPrivilegedPod: func(_, _, _, _ string, _ time.Duration, _ string) (*v1.Pod, error) {
+					return &corev1.Pod{}, nil
+				},
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return 1, nil
+				},
+			},
+			bridge:    NopRuntimeBridge{},
+			expectErr: true,
+		},
+		{
 			name:       "sad path, failed to extract pid",
 			settings:   &config.KsniffSettings{},
 			apiservice: NopKubernetesApiService{},

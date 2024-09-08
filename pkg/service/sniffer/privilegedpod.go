@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 
@@ -73,10 +74,10 @@ func (p *PrivilegedPodSnifferService) Setup() error {
 
 		// TODO: we need to check exit code (if non-zero) like in static tcpdump sniffer
 		exitCode, err := p.KubernetesApiService.ExecuteCommand(p.PrivilegedPod.Name, p.PrivilegedContainerName, command, &buff)
-		if err != nil {
+		if err != nil || exitCode != 0 {
 			log.WithError(err).Errorf("failed to start sniffing using privileged pod, exit code: '%d'", exitCode)
 
-			return err
+			return errors.Errorf("executing sniffer failed, exit code: '%d', error: '%s", exitCode, err)
 		}
 
 		p.TargetProcessId, err = p.RuntimeBridge.ExtractPid(buff.String())
