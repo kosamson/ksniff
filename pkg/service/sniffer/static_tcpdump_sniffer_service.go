@@ -2,6 +2,7 @@ package sniffer
 
 import (
 	"io"
+
 	"ksniff/kube"
 	"ksniff/pkg/config"
 
@@ -15,18 +16,27 @@ type StaticTcpdumpSnifferService struct {
 }
 
 func NewUploadTcpdumpRemoteSniffingService(options *config.KsniffSettings, service kube.KubernetesApiService) SnifferService {
-	return &StaticTcpdumpSnifferService{settings: options, kubernetesApiService: service}
+	return &StaticTcpdumpSnifferService{
+		settings:             options,
+		kubernetesApiService: service,
+	}
 }
 
 func (u *StaticTcpdumpSnifferService) Setup() error {
-	log.Infof("uploading static tcpdump binary from: '%s' to: '%s'",
-		u.settings.UserSpecifiedLocalTcpdumpPath, u.settings.UserSpecifiedRemoteTcpdumpPath)
+	log.Infof(
+		"uploading static tcpdump binary from: '%s' to: '%s'",
+		u.settings.UserSpecifiedLocalTcpdumpPath,
+		u.settings.UserSpecifiedRemoteTcpdumpPath,
+	)
 
-	err := u.kubernetesApiService.UploadFile(u.settings.UserSpecifiedLocalTcpdumpPath,
-		u.settings.UserSpecifiedRemoteTcpdumpPath, u.settings.UserSpecifiedPodName, u.settings.UserSpecifiedContainer)
-
-	if err != nil {
+	if err := u.kubernetesApiService.UploadFile(
+		u.settings.UserSpecifiedLocalTcpdumpPath,
+		u.settings.UserSpecifiedRemoteTcpdumpPath,
+		u.settings.UserSpecifiedPodName,
+		u.settings.UserSpecifiedContainer,
+	); err != nil {
 		log.WithError(err).Errorf("failed uploading static tcpdump binary to container, please verify the remote container has tar installed")
+
 		return err
 	}
 
@@ -35,6 +45,8 @@ func (u *StaticTcpdumpSnifferService) Setup() error {
 	return nil
 }
 
+// TODO: Shouldn't we remove the static tcpdump binary
+// from the container?
 func (u *StaticTcpdumpSnifferService) Cleanup() error {
 	return nil
 }
@@ -42,8 +54,10 @@ func (u *StaticTcpdumpSnifferService) Cleanup() error {
 func (u *StaticTcpdumpSnifferService) Start(stdOut io.Writer) error {
 	log.Info("start sniffing on remote container")
 
-	command := []string{u.settings.UserSpecifiedRemoteTcpdumpPath, "-i", u.settings.UserSpecifiedInterface,
-		"-U", "-w", "-", u.settings.UserSpecifiedFilter}
+	command := []string{
+		u.settings.UserSpecifiedRemoteTcpdumpPath, "-i", u.settings.UserSpecifiedInterface,
+		"-U", "-w", "-", u.settings.UserSpecifiedFilter,
+	}
 
 	exitCode, err := u.kubernetesApiService.ExecuteCommand(u.settings.UserSpecifiedPodName, u.settings.UserSpecifiedContainer, command, stdOut)
 	if err != nil || exitCode != 0 {

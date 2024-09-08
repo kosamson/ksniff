@@ -22,7 +22,12 @@ type PrivilegedPodSnifferService struct {
 }
 
 func NewPrivilegedPodRemoteSniffingService(options *config.KsniffSettings, service kube.KubernetesApiService, bridge runtime.ContainerRuntimeBridge) SnifferService {
-	return &PrivilegedPodSnifferService{settings: options, privilegedContainerName: "ksniff-privileged", kubernetesApiService: service, runtimeBridge: bridge}
+	return &PrivilegedPodSnifferService{
+		settings:                options,
+		privilegedContainerName: "ksniff-privileged",
+		kubernetesApiService:    service,
+		runtimeBridge:           bridge,
+	}
 }
 
 func (p *PrivilegedPodSnifferService) Setup() error {
@@ -59,11 +64,14 @@ func (p *PrivilegedPodSnifferService) Setup() error {
 
 	if p.runtimeBridge.NeedsPid() {
 		var buff bytes.Buffer
+
 		command := p.runtimeBridge.BuildInspectCommand(p.settings.DetectedContainerId)
+
 		exitCode, err := p.kubernetesApiService.ExecuteCommand(p.privilegedPod.Name, p.privilegedContainerName, command, &buff)
 		if err != nil {
 			log.WithError(err).Errorf("failed to start sniffing using privileged pod, exit code: '%d'", exitCode)
 		}
+
 		p.targetProcessId, err = p.runtimeBridge.ExtractPid(buff.String())
 		if err != nil {
 			return err
@@ -78,10 +86,15 @@ func (p *PrivilegedPodSnifferService) Cleanup() error {
 
 	if command != nil {
 		log.Infof("removing privileged container: '%s'", p.privilegedContainerName)
+
 		exitCode, err := p.kubernetesApiService.ExecuteCommand(p.privilegedPod.Name, p.privilegedContainerName, command, &kube.NopWriter{})
 		if err != nil {
-			log.WithError(err).Errorf("failed to remove privileged container: '%s', exit code: '%d', "+
-				"please manually remove it", p.privilegedContainerName, exitCode)
+			log.WithError(err).
+				Errorf(
+					"failed to remove privileged container: '%s', exit code: '%d', please manually remove it",
+					p.privilegedContainerName,
+					exitCode,
+				)
 		} else {
 			log.Infof("privileged container: '%s' removed successfully", p.privilegedContainerName)
 		}
@@ -93,6 +106,7 @@ func (p *PrivilegedPodSnifferService) Cleanup() error {
 		err := p.kubernetesApiService.DeletePod(p.privilegedPod.Name)
 		if err != nil {
 			log.WithError(err).Errorf("failed to remove pod: '%s", p.privilegedPod.Name)
+
 			return err
 		}
 
@@ -119,6 +133,7 @@ func (p *PrivilegedPodSnifferService) Start(stdOut io.Writer) error {
 	exitCode, err := p.kubernetesApiService.ExecuteCommand(p.privilegedPod.Name, p.privilegedContainerName, command, stdOut)
 	if err != nil {
 		log.WithError(err).Errorf("failed to start sniffing using privileged pod, exit code: '%d'", exitCode)
+
 		return err
 	}
 
