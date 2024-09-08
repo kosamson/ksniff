@@ -11,6 +11,8 @@ import (
 
 // TODO: Mock timings so that tests do not need to actually wait "N" seconds for a time-based test to finish: https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/mocking#mocking
 func TestRunWhileFalse_Instant(t *testing.T) {
+	t.Parallel()
+
 	// given
 	f := func() bool {
 		return true
@@ -24,6 +26,8 @@ func TestRunWhileFalse_Instant(t *testing.T) {
 }
 
 func TestRunWhileFalse_1SecTimeoutFalse(t *testing.T) {
+	t.Parallel()
+
 	// given
 	f := func() bool {
 		return false
@@ -41,6 +45,8 @@ func TestRunWhileFalse_1SecTimeoutFalse(t *testing.T) {
 }
 
 func TestRunWhileFalse_NoTimeout(t *testing.T) {
+	t.Parallel()
+
 	// given
 	f := func() bool {
 		return false
@@ -62,6 +68,8 @@ func TestRunWhileFalse_NoTimeout(t *testing.T) {
 }
 
 func TestRunWhileFalse_1SecTimeoutTrue(t *testing.T) {
+	t.Parallel()
+
 	// given
 	ret := false
 	f := func() bool {
@@ -77,6 +85,8 @@ func TestRunWhileFalse_1SecTimeoutTrue(t *testing.T) {
 }
 
 func TestGenerateRandomString(t *testing.T) {
+	t.Parallel()
+
 	randSeed := int64(1)
 	assert := assert.New(t)
 	testCases := []struct {
@@ -92,6 +102,8 @@ func TestGenerateRandomString(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				if r := recover(); tc.expectedToPanic {
 					assert.NotNil(r, "expected goroutine to panic")
