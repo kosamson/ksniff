@@ -71,9 +71,12 @@ func (p *PrivilegedPodSnifferService) Setup() error {
 
 		command := p.RuntimeBridge.BuildInspectCommand(p.Settings.DetectedContainerId)
 
+		// TODO: we need to check exit code (if non-zero) like in static tcpdump sniffer
 		exitCode, err := p.KubernetesApiService.ExecuteCommand(p.PrivilegedPod.Name, p.PrivilegedContainerName, command, &buff)
 		if err != nil {
 			log.WithError(err).Errorf("failed to start sniffing using privileged pod, exit code: '%d'", exitCode)
+
+			return err
 		}
 
 		p.TargetProcessId, err = p.RuntimeBridge.ExtractPid(buff.String())
