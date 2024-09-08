@@ -40,7 +40,3 @@ func NewContainerRuntimeBridge(runtimeName string) ContainerRuntimeBridge {
 		panic(fmt.Sprintf("Unable to build bridge to %s", runtimeName))
 	}
 }
-
-func stringPtr(s string) *string {
-	return &s
-}
