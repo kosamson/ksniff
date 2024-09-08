@@ -44,6 +44,31 @@ const (
 `
 )
 
+func TestNeedsPid_Crio(t *testing.T) {
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, true, bridge.NeedsPid())
+}
+
+func TestBuildCleanupCommand_Crio(t *testing.T) {
+	bridge := runtime.NewCrioBridge()
+	assert.Nil(t, bridge.BuildCleanupCommand())
+}
+
+func TestGetDefaultImage_Crio(t *testing.T) {
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "maintained/tcpdump", bridge.GetDefaultImage())
+}
+
+func TestGetDefaultTcpImage_Crio(t *testing.T) {
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "", bridge.GetDefaultTCPImage())
+}
+
+func TestGetDefaultSocketPath_Crio(t *testing.T) {
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "/var/run/crio/crio.sock", bridge.GetDefaultSocketPath())
+}
+
 func TestBuildInspectCommand_Crio(t *testing.T) {
 	t.Parallel()
 
