@@ -185,7 +185,6 @@ func TestStart_Privileged(t *testing.T) {
 	}
 }
 
-// this test is pretty useless until actual cleanup logic happens
 func TestCleanup_Privileged(t *testing.T) {
 	t.Parallel()
 
