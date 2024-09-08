@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
+const (
 	CRICTL_INSPECT_NO_PID_117 = `
 {
   "status": {},
@@ -42,74 +42,118 @@ var (
 `
 )
 
-func TestExtractPid_Empty(t *testing.T) {
-	// given
+func TestBuildInspectCommand_Crio(t *testing.T) {
+	t.Parallel()
+
+	expectedOutput := []string{
+		"chroot",
+		"/host",
+		"crictl",
+		"inspect",
+		"--output",
+		"json",
+		"test-container",
+	}
+
 	bridge := NewCrioBridge()
+	inspectCommand := bridge.BuildInspectCommand("test-container")
 
-	// when
-	result, err := bridge.ExtractPid("")
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	assert.Equal(t, expectedOutput, inspectCommand)
 }
 
-func TestExtractPid_EmptyJson(t *testing.T) {
-	// given
+func TestBuildTcpdumpCommand_Crio(t *testing.T) {
+	t.Parallel()
+
+	args := TcpDumpArguments{
+		Pid:          stringPtr("1234"),
+		NetInterface: "iface",
+		Filter:       "tcp",
+	}
+
+	expectedOutput := []string{
+		"nsenter",
+		"-n",
+		"-t",
+		"1234",
+		"--",
+		"tcpdump",
+		"-i",
+		"iface",
+		"-U",
+		"-w",
+		"-",
+		"tcp",
+	}
+
 	bridge := NewCrioBridge()
+	tcpDumpCommand := bridge.BuildTcpdumpCommand(args)
 
-	// when
-	result, err := bridge.ExtractPid("{}")
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	assert.Equal(t, expectedOutput, tcpDumpCommand)
 }
 
-func TestExtractPid_NoPid117(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestExtractPid_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_NO_PID_117)
+	testCases := []struct {
+		name             string
+		inputInspectData string
+		expectedPid      *string
+		expectErr        bool
+	}{
+		{
+			name:             "empty input",
+			inputInspectData: "",
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "empty json",
+			inputInspectData: "{}",
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "no pid cri-o 1.17",
+			inputInspectData: CRICTL_INSPECT_NO_PID_117,
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "valid pid cri-o 1.17",
+			inputInspectData: CRICTL_INSPECT_WITH_PID_117,
+			expectedPid:      stringPtr("69417"),
+			expectErr:        false,
+		},
+		{
+			name:             "no pid cri-o 1.18",
+			inputInspectData: CRICTL_INSPECT_NO_PID_118,
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "valid pid cri-o 1.18",
+			inputInspectData: CRICTL_INSPECT_WITH_PID_118,
+			expectedPid:      stringPtr("827137"),
+			expectErr:        false,
+		},
+	}
 
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
-}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestExtractPid_Valid117(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+			assert := assert.New(t)
+			bridge := NewCrioBridge()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_WITH_PID_117)
+			extractedPid, err := bridge.ExtractPid(testCase.inputInspectData)
 
-	// then
-	assert.Equal(t, "69417", *result)
-	assert.Nil(t, err)
-}
+			if testCase.expectErr {
+				assert.NotNil(err)
+			} else {
+				assert.Nil(err)
+			}
 
-func TestExtractPid_NoPid118(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
-
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_NO_PID_118)
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
-}
-
-func TestExtractPid_Valid118(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
-
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_WITH_PID_118)
-
-	// then
-	assert.Equal(t, "827137", *result)
-	assert.Nil(t, err)
+			assert.Equal(testCase.expectedPid, extractedPid)
+		})
+	}
 }

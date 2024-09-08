@@ -19,8 +19,13 @@ func (c *CrioBridge) NeedsPid() bool {
 
 func (c *CrioBridge) BuildInspectCommand(containerId string) []string {
 	return []string{
-		"chroot", "/host", "crictl", "inspect",
-		"--output", "json", containerId,
+		"chroot",
+		"/host",
+		"crictl",
+		"inspect",
+		"--output",
+		"json",
+		containerId,
 	}
 }
 
