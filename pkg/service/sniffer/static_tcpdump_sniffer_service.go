@@ -15,7 +15,10 @@ type StaticTcpdumpSnifferService struct {
 	kubernetesApiService kube.KubernetesApiService
 }
 
-func NewUploadTcpdumpRemoteSniffingService(options *config.KsniffSettings, service kube.KubernetesApiService) SnifferService {
+func NewUploadTcpdumpRemoteSniffingService(
+	options *config.KsniffSettings,
+	service kube.KubernetesApiService,
+) *StaticTcpdumpSnifferService {
 	return &StaticTcpdumpSnifferService{
 		settings:             options,
 		kubernetesApiService: service,
@@ -59,7 +62,12 @@ func (u *StaticTcpdumpSnifferService) Start(stdOut io.Writer) error {
 		"-U", "-w", "-", u.settings.UserSpecifiedFilter,
 	}
 
-	exitCode, err := u.kubernetesApiService.ExecuteCommand(u.settings.UserSpecifiedPodName, u.settings.UserSpecifiedContainer, command, stdOut)
+	exitCode, err := u.kubernetesApiService.ExecuteCommand(
+		u.settings.UserSpecifiedPodName,
+		u.settings.UserSpecifiedContainer,
+		command,
+		stdOut,
+	)
 	if err != nil || exitCode != 0 {
 		return errors.Errorf("executing sniffer failed, exit code: '%d'", exitCode)
 	}
