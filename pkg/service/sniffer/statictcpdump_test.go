@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type (
@@ -41,7 +42,11 @@ func (svc NopKubernetesApiService) DeletePod(_ string) error {
 }
 
 func (svc NopKubernetesApiService) CreatePrivilegedPod(_, _, _, _ string, _ time.Duration, _ string) (*corev1.Pod, error) {
-	return &corev1.Pod{}, nil
+	return &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "custom-pod",
+		},
+	}, nil
 }
 
 func (svc NopKubernetesApiService) UploadFile(_, _, _, _ string) error {

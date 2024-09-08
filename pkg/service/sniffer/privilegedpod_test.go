@@ -36,15 +36,19 @@ func (bridge NopRuntimeBridge) NeedsPid() bool {
 }
 
 func (bridge NopRuntimeBridge) BuildInspectCommand(containerId string) []string {
-	return []string{}
+	return []string{
+		"inspect",
+	}
 }
 
 func (bridge NopRuntimeBridge) ExtractPid(inspection string) (*string, error) {
-	return stringPtr(""), nil
+	return stringPtr("1234"), nil
 }
 
 func (bridge NopRuntimeBridge) BuildTcpdumpCommand(args runtime.TcpDumpArguments) []string {
-	return []string{}
+	return []string{
+		"tcpdump",
+	}
 }
 
 func (bridge NopRuntimeBridge) BuildCleanupCommand() []string {
@@ -52,15 +56,15 @@ func (bridge NopRuntimeBridge) BuildCleanupCommand() []string {
 }
 
 func (bridge NopRuntimeBridge) GetDefaultImage() string {
-	return ""
+	return "custom-image"
 }
 
 func (bridge NopRuntimeBridge) GetDefaultTCPImage() string {
-	return ""
+	return "tcpdump-image"
 }
 
 func (bridge NopRuntimeBridge) GetDefaultSocketPath() string {
-	return ""
+	return "/custom.sock"
 }
 
 func (bridge ModularRuntimeBridge) NeedsPid() bool {
