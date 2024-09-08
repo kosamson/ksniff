@@ -90,36 +90,37 @@ func (p *PrivilegedPodSnifferService) Setup() error {
 }
 
 func (p *PrivilegedPodSnifferService) Cleanup() error {
-	command := p.RuntimeBridge.BuildCleanupCommand()
+	if p.PrivilegedPod == nil {
+		return errors.Errorf("privileged pod does not exist, please manually remove privileged container: '%s'", p.PrivilegedContainerName)
+	}
 
+	command := p.RuntimeBridge.BuildCleanupCommand()
 	if command != nil {
 		log.Infof("removing privileged container: '%s'", p.PrivilegedContainerName)
 
 		exitCode, err := p.KubernetesApiService.ExecuteCommand(p.PrivilegedPod.Name, p.PrivilegedContainerName, command, &kube.NopWriter{})
 		if err != nil || exitCode != 0 {
-			log.WithError(err).
-				Errorf(
-					"failed to remove privileged container: '%s', exit code: '%d', please manually remove it",
-					p.PrivilegedContainerName,
-					exitCode,
-				)
+			log.WithError(err).Errorf(
+				"failed to remove privileged container: '%s', exit code: '%d', please manually remove it",
+				p.PrivilegedContainerName,
+				exitCode,
+			)
 		} else {
 			log.Infof("privileged container: '%s' removed successfully", p.PrivilegedContainerName)
 		}
+	} else {
+		log.Warnf("failed to build cleanup command, please manally remove privileged container: '%s'", p.PrivilegedContainerName)
 	}
 
-	if p.PrivilegedPod != nil {
-		log.Infof("removing pod: '%s'", p.PrivilegedPod.Name)
+	log.Infof("removing pod: '%s'", p.PrivilegedPod.Name)
 
-		err := p.KubernetesApiService.DeletePod(p.PrivilegedPod.Name)
-		if err != nil {
-			log.WithError(err).Errorf("failed to remove pod: '%s", p.PrivilegedPod.Name)
+	if err := p.KubernetesApiService.DeletePod(p.PrivilegedPod.Name); err != nil {
+		log.WithError(err).Errorf("failed to remove pod: '%s", p.PrivilegedPod.Name)
 
-			return err
-		}
-
-		log.Infof("pod: '%s' removed successfully", p.PrivilegedPod.Name)
+		return err
 	}
+
+	log.Infof("pod: '%s' removed successfully", p.PrivilegedPod.Name)
 
 	return nil
 }

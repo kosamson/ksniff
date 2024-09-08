@@ -3,6 +3,7 @@ package sniffer_test
 import (
 	"fmt"
 	"io"
+	"os"
 	"testing"
 	"time"
 
@@ -306,37 +307,122 @@ func TestStart_Privileged(t *testing.T) {
 }
 
 func TestCleanup_Privileged(t *testing.T) {
-	t.Parallel()
-
+	// unfortunately we cannot parallelize this test
+	// because we use t.Setenv for mocking k8sapisvc.DeletePod
 	assert := assert.New(t)
 
 	testCases := []struct {
-		name       string
-		settings   *config.KsniffSettings
-		apiservice kube.KubernetesApiService
-		bridge     runtime.ContainerRuntimeBridge
-		expectErr  bool
+		name            string
+		settings        *config.KsniffSettings
+		apiservice      kube.KubernetesApiService
+		bridge          runtime.ContainerRuntimeBridge
+		privilegedPod   *v1.Pod
+		expectErr       bool
+		extraAssertions func(*sniffer.PrivilegedPodSnifferService) bool
 	}{
 		{
-			name:       "happy path",
-			settings:   &config.KsniffSettings{},
-			apiservice: NopKubernetesApiService{},
-			bridge:     NopRuntimeBridge{},
-			expectErr:  false,
+			name:          "happy path with privileged pod",
+			settings:      &config.KsniffSettings{},
+			apiservice:    NopKubernetesApiService{},
+			bridge:        NopRuntimeBridge{},
+			privilegedPod: &v1.Pod{},
+			expectErr:     false,
+		},
+		// we ignore the "happy" sad path(s) where removing priv container succeeds
+		// since the operation causes no side effects or different logical paths
+		// except for logging
+		//
+		// (should we be testing logging?)
+		{
+			name:          "sad path no privileged pod",
+			settings:      &config.KsniffSettings{},
+			apiservice:    NopKubernetesApiService{},
+			bridge:        NopRuntimeBridge{},
+			privilegedPod: nil,
+			expectErr:     true,
+		},
+		{
+			name:     "'happy' sad path, remove priv container fails, but priv pod still cleaned up",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return -1, fmt.Errorf("failed to execute command")
+				},
+				deletePod: func(_ string) error {
+					t.Setenv("POD_DELETED", "true")
+
+					return nil
+				},
+			},
+			bridge:        NopRuntimeBridge{},
+			privilegedPod: &v1.Pod{},
+			expectErr:     false,
+			extraAssertions: func(svc *sniffer.PrivilegedPodSnifferService) bool {
+				t.Helper()
+
+				assert.Equal(os.Getenv("POD_DELETED"), "true")
+
+				return true
+			},
+		},
+		{
+			name:     "'happy' sad path, build cleanup command fails, but priv pod still cleaned up",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				deletePod: func(_ string) error {
+					t.Setenv("POD_DELETED", "true")
+
+					return nil
+				},
+			},
+			bridge: ModularRuntimeBridge{
+				buildCleanupCommand: func() []string {
+					return nil
+				},
+			},
+			privilegedPod: &v1.Pod{},
+			expectErr:     false,
+			extraAssertions: func(svc *sniffer.PrivilegedPodSnifferService) bool {
+				t.Helper()
+
+				assert.Equal(os.Getenv("POD_DELETED"), "true")
+
+				return true
+			},
+		},
+		{
+			name:     "sad path, priv pod deletion fails",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return 0, nil
+				},
+				deletePod: func(_ string) error {
+					return fmt.Errorf("failed to delete pod")
+				},
+			},
+			bridge:        NopRuntimeBridge{},
+			privilegedPod: &v1.Pod{},
+			expectErr:     true,
+			extraAssertions: func(svc *sniffer.PrivilegedPodSnifferService) bool {
+				t.Helper()
+
+				assert.NotEqual(os.Getenv("POD_DELETED"), "true")
+
+				return true
+			},
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			svc := sniffer.NewPrivilegedPodRemoteSniffingService(
 				testCase.settings,
 				testCase.apiservice,
 				testCase.bridge,
 			)
 
-			svc.PrivilegedPod = &v1.Pod{}
+			svc.PrivilegedPod = testCase.privilegedPod
 
 			err := svc.Cleanup()
 
