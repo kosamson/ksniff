@@ -96,7 +96,7 @@ func (p *PrivilegedPodSnifferService) Cleanup() error {
 		log.Infof("removing privileged container: '%s'", p.PrivilegedContainerName)
 
 		exitCode, err := p.KubernetesApiService.ExecuteCommand(p.PrivilegedPod.Name, p.PrivilegedContainerName, command, &kube.NopWriter{})
-		if err != nil {
+		if err != nil || exitCode != 0 {
 			log.WithError(err).
 				Errorf(
 					"failed to remove privileged container: '%s', exit code: '%d', please manually remove it",
