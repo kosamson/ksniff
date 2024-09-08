@@ -1,7 +1,9 @@
-package runtime
+package runtime_test
 
 import (
 	"testing"
+
+	"ksniff/pkg/service/sniffer/runtime"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +57,7 @@ func TestBuildInspectCommand_Crio(t *testing.T) {
 		"test-container",
 	}
 
-	bridge := NewCrioBridge()
+	bridge := runtime.NewCrioBridge()
 	inspectCommand := bridge.BuildInspectCommand("test-container")
 
 	assert.Equal(t, expectedOutput, inspectCommand)
@@ -64,7 +66,7 @@ func TestBuildInspectCommand_Crio(t *testing.T) {
 func TestBuildTcpdumpCommand_Crio(t *testing.T) {
 	t.Parallel()
 
-	args := TcpDumpArguments{
+	args := runtime.TcpDumpArguments{
 		Pid:          stringPtr("1234"),
 		NetInterface: "iface",
 		Filter:       "tcp",
@@ -85,7 +87,7 @@ func TestBuildTcpdumpCommand_Crio(t *testing.T) {
 		"tcp",
 	}
 
-	bridge := NewCrioBridge()
+	bridge := runtime.NewCrioBridge()
 	tcpDumpCommand := bridge.BuildTcpdumpCommand(args)
 
 	assert.Equal(t, expectedOutput, tcpDumpCommand)
@@ -143,7 +145,7 @@ func TestExtractPid_Crio(t *testing.T) {
 			t.Parallel()
 
 			assert := assert.New(t)
-			bridge := NewCrioBridge()
+			bridge := runtime.NewCrioBridge()
 
 			extractedPid, err := bridge.ExtractPid(testCase.inputInspectData)
 
@@ -156,4 +158,8 @@ func TestExtractPid_Crio(t *testing.T) {
 			assert.Equal(testCase.expectedPid, extractedPid)
 		})
 	}
+}
+
+func stringPtr(s string) *string {
+	return &s
 }

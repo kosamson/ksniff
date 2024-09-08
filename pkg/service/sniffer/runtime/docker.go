@@ -7,7 +7,7 @@ import (
 )
 
 type DockerBridge struct {
-	tcpdumpContainerName string
+	TcpdumpContainerName string
 	cleanupCommand       []string
 }
 
@@ -28,8 +28,8 @@ func (d *DockerBridge) ExtractPid(inspection string) (*string, error) {
 }
 
 func (d *DockerBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
-	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
-	containerNameFlag := fmt.Sprintf("--name=%s", d.tcpdumpContainerName)
+	d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
+	containerNameFlag := fmt.Sprintf("--name=%s", d.TcpdumpContainerName)
 
 	command := []string{
 		"docker", "--host", "unix://" + args.SocketPath,
@@ -40,7 +40,7 @@ func (d *DockerBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
 
 	d.cleanupCommand = []string{
 		"docker", "--host", "unix://" + args.SocketPath,
-		"rm", "-f", d.tcpdumpContainerName,
+		"rm", "-f", d.TcpdumpContainerName,
 	}
 
 	return command
