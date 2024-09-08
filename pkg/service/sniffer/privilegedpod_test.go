@@ -1,7 +1,10 @@
 package sniffer_test
 
 import (
+	"fmt"
+	"io"
 	"testing"
+	"time"
 
 	"ksniff/kube"
 	"ksniff/pkg/config"
@@ -9,6 +12,7 @@ import (
 	"ksniff/pkg/service/sniffer/runtime"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -105,11 +109,12 @@ func TestSetup_Privileged(t *testing.T) {
 	assert := assert.New(t)
 
 	testCases := []struct {
-		name       string
-		settings   *config.KsniffSettings
-		apiservice kube.KubernetesApiService
-		bridge     runtime.ContainerRuntimeBridge
-		expectErr  bool
+		name            string
+		settings        *config.KsniffSettings
+		apiservice      kube.KubernetesApiService
+		bridge          runtime.ContainerRuntimeBridge
+		expectErr       bool
+		extraAssertions func(*sniffer.PrivilegedPodSnifferService) bool
 	}{
 		{
 			name:       "happy path",
@@ -117,6 +122,103 @@ func TestSetup_Privileged(t *testing.T) {
 			apiservice: NopKubernetesApiService{},
 			bridge:     NopRuntimeBridge{},
 			expectErr:  false,
+		},
+		{
+			name: "happy path uses all default values",
+			settings: &config.KsniffSettings{
+				UseDefaultImage:        true,
+				UseDefaultTCPDumpImage: true,
+				UseDefaultSocketPath:   true,
+			},
+			apiservice: NopKubernetesApiService{},
+			bridge:     NopRuntimeBridge{},
+			expectErr:  false,
+			extraAssertions: func(svc *sniffer.PrivilegedPodSnifferService) bool {
+				t.Helper()
+
+				nop := NopRuntimeBridge{}
+
+				assert.Equal(nop.GetDefaultImage(), svc.Settings.Image)
+				assert.Equal(nop.GetDefaultTCPImage(), svc.Settings.TCPDumpImage)
+				assert.Equal(nop.GetDefaultSocketPath(), svc.Settings.SocketPath)
+
+				return true
+			},
+		},
+		{
+			name:     "happy path, pid successfully extracted",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				createPrivilegedPod: func(_, _, _, _ string, _ time.Duration, _ string) (*v1.Pod, error) {
+					return &corev1.Pod{}, nil
+				},
+				executeCommand: func(_, _ string, command []string, w io.Writer) (int, error) {
+					w.Write([]byte("1234"))
+
+					return 0, nil
+				},
+			},
+			bridge: ModularRuntimeBridge{
+				needsPid: func() bool {
+					return true
+				},
+				buildInspectCommand: func(_ string) []string {
+					return []string{"inspect"}
+				},
+				extractPid: func(inspectData string) (*string, error) {
+					return stringPtr(inspectData), nil
+				},
+			},
+			expectErr: false,
+			extraAssertions: func(svc *sniffer.PrivilegedPodSnifferService) bool {
+				t.Helper()
+
+				assert.Equal(*stringPtr("1234"), *svc.TargetProcessId)
+
+				return true
+			},
+		},
+		{
+			name:     "sad path, privileged pod failed to create",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				createPrivilegedPod: func(_, _, _, _ string, _ time.Duration, _ string) (*v1.Pod, error) {
+					return nil, fmt.Errorf("failed to create privileged pod")
+				},
+			},
+			bridge:    NopRuntimeBridge{},
+			expectErr: true,
+		},
+		{
+			name:     "sad path, k8s api svc returns error on ExecuteCommand",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				createPrivilegedPod: func(_, _, _, _ string, _ time.Duration, _ string) (*v1.Pod, error) {
+					return &corev1.Pod{}, nil
+				},
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return 0, fmt.Errorf("error executing command")
+				},
+			},
+			bridge:    NopRuntimeBridge{},
+			expectErr: true,
+		},
+		{
+			name:       "sad path, failed to extract pid",
+			settings:   &config.KsniffSettings{},
+			apiservice: NopKubernetesApiService{},
+			bridge: ModularRuntimeBridge{
+				needsPid: func() bool {
+					return true
+				},
+				buildInspectCommand: func(_ string) []string {
+					return []string{}
+				},
+				extractPid: func(_ string) (*string, error) {
+					return nil, fmt.Errorf("failed to extract pid")
+				},
+			},
+			expectErr: true,
 		},
 	}
 
@@ -131,6 +233,10 @@ func TestSetup_Privileged(t *testing.T) {
 			)
 
 			err := svc.Setup()
+
+			if testCase.extraAssertions != nil {
+				assert.True(testCase.extraAssertions(svc))
+			}
 
 			if testCase.expectErr {
 				assert.Error(err)
