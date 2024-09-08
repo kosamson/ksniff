@@ -2,6 +2,7 @@ package sniffer
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -140,10 +141,12 @@ func (p *PrivilegedPodSnifferService) Start(stdOut io.Writer) error {
 	command := p.RuntimeBridge.BuildTcpdumpCommand(args)
 
 	exitCode, err := p.KubernetesApiService.ExecuteCommand(p.PrivilegedPod.Name, p.PrivilegedContainerName, command, stdOut)
-	if err != nil {
-		log.WithError(err).Errorf("failed to start sniffing using privileged pod, exit code: '%d'", exitCode)
+	if err != nil || exitCode != 0 {
+		msg := fmt.Sprintf("failed to start sniffing using privileged pod, exit code: '%d', error: '%s'", exitCode, err)
 
-		return err
+		log.WithError(err).Error(msg)
+
+		return errors.Errorf(msg)
 	}
 
 	log.Info("remote sniffing using privileged pod completed")

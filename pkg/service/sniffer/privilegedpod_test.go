@@ -281,6 +281,28 @@ func TestStart_Privileged(t *testing.T) {
 			bridge:     NopRuntimeBridge{},
 			expectErr:  false,
 		},
+		{
+			name:     "sad path, k8s api svc ExecuteCommand returns error",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return 0, fmt.Errorf("failed to execute command")
+				},
+			},
+			bridge:    NopRuntimeBridge{},
+			expectErr: true,
+		},
+		{
+			name:     "sad path, k8s api svc ExecuteCommand returns non-zero exit code",
+			settings: &config.KsniffSettings{},
+			apiservice: ModularKubernetesApiService{
+				executeCommand: func(_, _ string, _ []string, _ io.Writer) (int, error) {
+					return 1, nil
+				},
+			},
+			bridge:    NopRuntimeBridge{},
+			expectErr: true,
+		},
 	}
 
 	for _, testCase := range testCases {
