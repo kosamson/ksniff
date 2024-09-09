@@ -1,22 +1,24 @@
-package cmd
+package cmd_test
 
 import (
 	"strings"
 	"testing"
 
+	"ksniff/pkg/cmd"
 	"ksniff/pkg/config"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
 func TestComplete_NotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
 	// given
-	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
-	sniff := NewKsniff(settings)
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
+	sniff := cmd.NewKsniff(settings)
 	cmd := &cobra.Command{}
 	var commands []string
 
@@ -32,8 +34,8 @@ func TestComplete_EmptyPodName(t *testing.T) {
 	t.Parallel()
 
 	// given
-	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
-	sniff := NewKsniff(settings)
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
+	sniff := cmd.NewKsniff(settings)
 	cmd := &cobra.Command{}
 	var commands []string
 
@@ -49,9 +51,9 @@ func TestComplete_PodNameSpecified(t *testing.T) {
 	t.Parallel()
 
 	// given
-	settings := config.NewKsniffSettings(genericclioptions.IOStreams{})
-	sniff := NewKsniff(settings)
-	cmd := NewCmdSniff(genericclioptions.IOStreams{})
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
+	sniff := cmd.NewKsniff(settings)
+	cmd := cmd.NewCmdSniff(genericclioptions.IOStreams{})
 	var commands []string
 
 	// when
