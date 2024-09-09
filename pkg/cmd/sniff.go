@@ -35,13 +35,13 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
-var (
-	ksniffExample = "kubectl sniff hello-minikube-7c77b68cff-qbvsd -c hello-minikube"
-)
+var ksniffExample = "kubectl sniff hello-minikube-7c77b68cff-qbvsd -c hello-minikube"
 
-const minimumNumberOfArguments = 1
-const tcpdumpBinaryName = "static-tcpdump"
-const tcpdumpRemotePath = "/tmp/static-tcpdump"
+const (
+	minimumNumberOfArguments = 1
+	tcpdumpBinaryName        = "static-tcpdump"
+	tcpdumpRemotePath        = "/tmp/static-tcpdump"
+)
 
 var tcpdumpLocalBinaryPathLookupList []string
 
@@ -159,7 +159,6 @@ func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
-
 	if len(args) < minimumNumberOfArguments {
 		_ = cmd.Usage()
 		return errors.New("not enough arguments")
@@ -395,7 +394,6 @@ func (o *Ksniff) setupSignalHandler() chan interface{} {
 			case <-exit:
 				return
 			}
-
 		}
 	}()
 	return exit
