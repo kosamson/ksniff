@@ -8,6 +8,7 @@ import (
 	"ksniff/pkg/cmd"
 	"ksniff/pkg/config"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,7 @@ func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 			}
 
 			// check if viper keys bound to cobra pflags
+			//
 			// this logic is intentionally placed *after*
 			// testing environment variable binding
 			// since flags take a higher precedence in
@@ -134,6 +136,42 @@ func TestComplete_PodNameSpecified(t *testing.T) {
 	// then
 	assert.Nil(t, err)
 	assert.Equal(t, "pod-name", settings.UserSpecifiedPodName)
+}
+
+func TestComplete_VerboseModeSpecified(t *testing.T) {
+	t.Parallel()
+
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
+
+	sniff := cmd.NewKsniff(settings)
+	cmd := cmd.NewCmdSniff(genericclioptions.IOStreams{})
+
+	cmd.ParseFlags([]string{"--verbose"})
+
+	var commands []string
+
+	err := sniff.Complete(cmd, append(commands, "pod-name"))
+
+	assert.Nil(t, err)
+	assert.Equal(t, log.DebugLevel, log.GetLevel())
+}
+
+func TestComplete_UserSpecifiedKubeContextNotExists(t *testing.T) {
+	t.Parallel()
+
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
+
+	sniff := cmd.NewKsniff(settings)
+	cmd := cmd.NewCmdSniff(genericclioptions.IOStreams{})
+
+	cmd.ParseFlags([]string{"--context=fake-context"})
+
+	var commands []string
+
+	err := sniff.Complete(cmd, append(commands, "pod-name"))
+
+	assert.NotNil(t, err)
+	assert.ErrorContains(t, err, "context doesn't exist")
 }
 
 func stringSliceToSet(sl []string) map[string]bool {

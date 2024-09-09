@@ -62,7 +62,6 @@ func NewKsniff(settings *config.KsniffSettings) *Ksniff {
 
 func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 	ksniffSettings := config.NewKsniffSettings(streams)
-
 	ksniff := NewKsniff(ksniffSettings)
 
 	cmd := &cobra.Command{
@@ -170,6 +169,8 @@ func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
 		return errors.New("pod name is empty")
 	}
 
+	// is this really needed since cobra pflags are already
+	// bound to these settings struct fields?
 	o.settings.UserSpecifiedNamespace = viper.GetString("namespace")
 	o.settings.UserSpecifiedContainer = viper.GetString("container")
 	o.settings.UserSpecifiedInterface = viper.GetString("interface")
@@ -220,7 +221,7 @@ func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
 
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{
-		CurrentContext: o.settings.UserSpecifiedKubeContext,
+		CurrentContext: o.settings.UserSpecifiedKubeContext, // shouldn't this be currentContext?
 	}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	o.restConfig, err = kubeConfig.ClientConfig()
