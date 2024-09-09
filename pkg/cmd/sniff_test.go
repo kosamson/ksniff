@@ -1,6 +1,7 @@
 package cmd_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 	assert := assert.New(t)
 
+	// TODO: should test if pflag is properly bound to
+	// ksniffsettings struct fields
 	flagKeys := []struct {
 		name       string
 		shorthand  string
@@ -41,6 +44,7 @@ func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 	}
 
 	cmd := cmd.NewCmdSniff(genericiooptions.NewTestIOStreamsDiscard())
+	boundViperKeys := stringSliceToSet(viper.AllKeys())
 
 	for _, flagKey := range flagKeys {
 		t.Run(flagKey.name, func(t *testing.T) {
@@ -51,12 +55,31 @@ func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 			assert.Equal(flagKey.shorthand, flag.Shorthand)
 			assert.Equal(flagKey.defaultVal, flag.DefValue)
 
-			// check if viper keys set properly based on flag name
+			// check if viper keys bound to environment variables
 			if flagKey.envKey != "" {
-				envVal := "test-value-" + flagKey.name
+				envVal := "test-env-" + flagKey.name
 
 				t.Setenv(flagKey.envKey, envVal)
 				assert.Equal(envVal, viper.GetString(flagKey.name))
+			}
+
+			// check if viper keys bound to cobra pflags
+			// this logic is intentionally placed *after*
+			// testing environment variable binding
+			// since flags take a higher precedence in
+			// viper config management
+			if _, ok := boundViperKeys[flagKey.name]; ok {
+				var flagVal string
+				if flagKey.defaultVal != "" {
+					flagVal = flagKey.defaultVal
+				} else {
+					flagVal = "test-flag-" + flagKey.name
+				}
+
+				flagArg := fmt.Sprintf("--%s=%s", flagKey.name, flagVal)
+
+				cmd.ParseFlags([]string{flagArg}) // why does cmd.SetArgs() not work?
+				assert.Equal(flagVal, viper.GetString(flagKey.name))
 			}
 		})
 	}
@@ -111,4 +134,14 @@ func TestComplete_PodNameSpecified(t *testing.T) {
 	// then
 	assert.Nil(t, err)
 	assert.Equal(t, "pod-name", settings.UserSpecifiedPodName)
+}
+
+func stringSliceToSet(sl []string) map[string]bool {
+	mp := make(map[string]bool, len(sl))
+
+	for _, s := range sl {
+		mp[s] = true
+	}
+
+	return mp
 }
