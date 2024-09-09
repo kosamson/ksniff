@@ -13,6 +13,49 @@ import (
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
+func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+
+	flagKeys := []struct {
+		name       string
+		shorthand  string
+		defaultVal string
+	}{
+		{"namespace", "n", ""},
+		{"interface", "i", "any"},
+		{"container", "c", ""},
+		{"filter", "f", ""},
+		{"output-file", "o", ""},
+		{"local-tcpdump-path", "l", ""},
+		{"remote-tcpdump-path", "r", "/tmp/static-tcpdump"},
+		{"verbose", "v", "false"},
+		{"privileged", "p", "false"},
+		{"pod-creation-timeout", "", "1m0s"},
+		{"image", "", ""},
+		{"tcpdump-image", "", ""},
+		{"context", "x", ""},
+		{"socket", "", ""},
+		{"serviceaccount", "s", ""},
+	}
+
+	cmd := cmd.NewCmdSniff(genericiooptions.NewTestIOStreamsDiscard())
+
+	for _, flagKey := range flagKeys {
+		t.Run(flagKey.name, func(t *testing.T) {
+			t.Parallel()
+
+			flag := cmd.Flags().Lookup(flagKey.name)
+
+			assert.NotNil(flag)
+			assert.Equal(flagKey.name, flag.Name)
+			assert.Equal(flagKey.shorthand, flag.Shorthand)
+			assert.Equal(flagKey.defaultVal, flag.DefValue)
+		})
+	}
+}
+
 func TestComplete_NotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
