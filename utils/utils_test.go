@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -70,12 +71,22 @@ func TestRunWhileFalse_NoTimeout(t *testing.T) {
 func TestRunWhileFalse_1SecTimeoutTrue(t *testing.T) {
 	t.Parallel()
 
+	// without the mutex, this raises a
+	// gorace data race error
+	var mu sync.Mutex
+
 	ret := false
 	f := func() bool {
+		mu.Lock()
+		defer mu.Unlock()
 		return ret
 	}
 
-	time.AfterFunc(1*time.Second, func() { ret = true })
+	time.AfterFunc(1*time.Second, func() {
+		mu.Lock()
+		defer mu.Unlock()
+		ret = true
+	})
 
 	result := RunWhileFalse(f, 5*time.Second, time.Second)
 

@@ -16,6 +16,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
+// Tests cannot run in parallel since viper config is a singleton,
+// possibly need to refactor to use independent vipers
+
 func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 	assert := assert.New(t)
 
@@ -88,8 +91,6 @@ func TestNewCmdSniff_FlagsRegistered(t *testing.T) {
 }
 
 func TestComplete_NotEnoughArguments(t *testing.T) {
-	t.Parallel()
-
 	// given
 	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 	sniff := cmd.NewKsniff(settings)
@@ -105,8 +106,6 @@ func TestComplete_NotEnoughArguments(t *testing.T) {
 }
 
 func TestComplete_EmptyPodName(t *testing.T) {
-	t.Parallel()
-
 	// given
 	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 	sniff := cmd.NewKsniff(settings)
@@ -122,8 +121,6 @@ func TestComplete_EmptyPodName(t *testing.T) {
 }
 
 func TestComplete_PodNameSpecified(t *testing.T) {
-	t.Parallel()
-
 	// given
 	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 	sniff := cmd.NewKsniff(settings)
@@ -139,8 +136,6 @@ func TestComplete_PodNameSpecified(t *testing.T) {
 }
 
 func TestComplete_VerboseModeSpecified(t *testing.T) {
-	t.Parallel()
-
 	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 
 	sniff := cmd.NewKsniff(settings)
@@ -156,9 +151,25 @@ func TestComplete_VerboseModeSpecified(t *testing.T) {
 	assert.Equal(t, log.DebugLevel, log.GetLevel())
 }
 
-func TestComplete_UserSpecifiedKubeContextNotExists(t *testing.T) {
-	t.Parallel()
+// maybe this needs to be a whitebox test to see `resultingContext`
+func TestComplete_UserSpecifiedNamespace(t *testing.T) {
+	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 
+	sniff := cmd.NewKsniff(settings)
+	cmd := cmd.NewCmdSniff(genericclioptions.IOStreams{})
+
+	cmd.ParseFlags([]string{"--namespace=my-namespace"})
+
+	var commands []string
+
+	err := sniff.Complete(cmd, append(commands, "pod-name"))
+
+	assert.Nil(t, err)
+}
+
+// to test a user-specified kubectx that *does* exist, may need
+// to be a whitebox test to modify `Ksniff.configFlags`
+func TestComplete_UserSpecifiedKubeContextNotExists(t *testing.T) {
 	settings := config.NewKsniffSettings(genericiooptions.IOStreams{})
 
 	sniff := cmd.NewKsniff(settings)
