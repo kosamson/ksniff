@@ -37,7 +37,11 @@ func RunWhileFalse(fn func() bool, timeout time.Duration, delay time.Duration) b
 	}
 }
 
-func GenerateRandomString(random *rand.Rand, length int) string {
+func GenerateRandomString(length int) string {
+	return generateRandomString(nil, length)
+}
+
+func generateRandomString(random *rand.Rand, length int) string {
 	if length < 0 {
 		panic("length of random string must be greater than or equal to zero")
 	}
@@ -46,7 +50,7 @@ func GenerateRandomString(random *rand.Rand, length int) string {
 		random = rand.New(rand.NewSource(time.Now().Unix()))
 	}
 
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]rune, length)
 
 	for i := range b {

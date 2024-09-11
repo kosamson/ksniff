@@ -33,7 +33,7 @@ func (d ContainerdBridge) GetDefaultSocketPath() string {
 
 func (d *ContainerdBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
 	if d.TcpdumpContainerName == "" {
-		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
+		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
 	}
 
 	d.SocketPath = args.SocketPath

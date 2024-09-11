@@ -29,7 +29,7 @@ func (d *DockerBridge) ExtractPid(inspection string) (*string, error) {
 
 func (d *DockerBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
 	if d.TcpdumpContainerName == "" {
-		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(nil, 8)
+		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
 	}
 
 	d.SocketPath = args.SocketPath
