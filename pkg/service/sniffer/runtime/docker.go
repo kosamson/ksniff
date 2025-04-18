@@ -7,8 +7,8 @@ import (
 )
 
 type DockerBridge struct {
-	tcpdumpContainerName string
-	cleanupCommand       []string
+	TcpdumpContainerName string
+	SocketPath           string
 }
 
 func NewDockerBridge() *DockerBridge {
@@ -27,23 +27,44 @@ func (d *DockerBridge) ExtractPid(inspection string) (*string, error) {
 	panic("Docker doesn't need this implemented")
 }
 
-func (d *DockerBridge) BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string {
-	d.tcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
-	containerNameFlag := fmt.Sprintf("--name=%s", d.tcpdumpContainerName)
+func (d *DockerBridge) BuildTcpdumpCommand(args TcpDumpArguments) []string {
+	if d.TcpdumpContainerName == "" {
+		d.TcpdumpContainerName = "ksniff-container-" + utils.GenerateRandomString(8)
+	}
 
-	command := []string{"docker", "--host", "unix://" + socketPath,
-		"run", "--rm", "--log-driver", "none", containerNameFlag,
-		fmt.Sprintf("--net=container:%s", *containerId), tcpdumpImage, "-i",
-		netInterface, "-U", "-w", "-", filter}
+	d.SocketPath = args.SocketPath
 
-	d.cleanupCommand = []string{"docker", "--host", "unix://" + socketPath,
-		"rm", "-f", d.tcpdumpContainerName}
+	containerNameFlag := fmt.Sprintf("--name=%s", d.TcpdumpContainerName)
+
+	command := []string{
+		"docker",
+		"--host",
+		"unix://" + args.SocketPath,
+		"run",
+		"--rm",
+		"--log-driver",
+		"none",
+		containerNameFlag,
+		fmt.Sprintf("--net=container:%s", *args.ContainerId),
+		args.TcpdumpImage,
+		"-i",
+		args.NetInterface,
+		"-U",
+		"-w",
+		"-",
+		args.Filter,
+	}
 
 	return command
 }
 
 func (d *DockerBridge) BuildCleanupCommand() []string {
-	return d.cleanupCommand
+	return []string{
+		"docker",
+		"--host",
+		"unix://" + d.SocketPath,
+		"rm", "-f", d.TcpdumpContainerName,
+	}
 }
 
 func (d *DockerBridge) GetDefaultImage() string {

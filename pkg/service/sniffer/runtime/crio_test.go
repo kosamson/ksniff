@@ -1,12 +1,14 @@
-package runtime
+package runtime_test
 
 import (
 	"testing"
 
+	"ksniff/pkg/service/sniffer/runtime"
+
 	"github.com/stretchr/testify/assert"
 )
 
-var (
+const (
 	CRICTL_INSPECT_NO_PID_117 = `
 {
   "status": {},
@@ -42,74 +44,153 @@ var (
 `
 )
 
-func TestExtractPid_Empty(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestNeedsPid_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid("")
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, true, bridge.NeedsPid())
 }
 
-func TestExtractPid_EmptyJson(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestBuildCleanupCommand_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid("{}")
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	bridge := runtime.NewCrioBridge()
+	assert.Nil(t, bridge.BuildCleanupCommand())
 }
 
-func TestExtractPid_NoPid117(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestGetDefaultImage_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_NO_PID_117)
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "maintained/tcpdump", bridge.GetDefaultImage())
 }
 
-func TestExtractPid_Valid117(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestGetDefaultTcpImage_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_WITH_PID_117)
-
-	// then
-	assert.Equal(t, "69417", *result)
-	assert.Nil(t, err)
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "", bridge.GetDefaultTCPImage())
 }
 
-func TestExtractPid_NoPid118(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestGetDefaultSocketPath_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_NO_PID_118)
-
-	// then
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
+	bridge := runtime.NewCrioBridge()
+	assert.Equal(t, "/var/run/crio/crio.sock", bridge.GetDefaultSocketPath())
 }
 
-func TestExtractPid_Valid118(t *testing.T) {
-	// given
-	bridge := NewCrioBridge()
+func TestBuildInspectCommand_Crio(t *testing.T) {
+	t.Parallel()
 
-	// when
-	result, err := bridge.ExtractPid(CRICTL_INSPECT_WITH_PID_118)
+	expectedOutput := []string{
+		"chroot",
+		"/host",
+		"crictl",
+		"inspect",
+		"--output",
+		"json",
+		"test-container",
+	}
 
-	// then
-	assert.Equal(t, "827137", *result)
-	assert.Nil(t, err)
+	bridge := runtime.NewCrioBridge()
+	inspectCommand := bridge.BuildInspectCommand("test-container")
+
+	assert.Equal(t, expectedOutput, inspectCommand)
+}
+
+func TestBuildTcpdumpCommand_Crio(t *testing.T) {
+	t.Parallel()
+
+	args := runtime.TcpDumpArguments{
+		Pid:          stringPtr("1234"),
+		NetInterface: "iface",
+		Filter:       "tcp",
+	}
+
+	expectedOutput := []string{
+		"nsenter",
+		"-n",
+		"-t",
+		"1234",
+		"--",
+		"tcpdump",
+		"-i",
+		"iface",
+		"-U",
+		"-w",
+		"-",
+		"tcp",
+	}
+
+	bridge := runtime.NewCrioBridge()
+	tcpDumpCommand := bridge.BuildTcpdumpCommand(args)
+
+	assert.Equal(t, expectedOutput, tcpDumpCommand)
+}
+
+func TestExtractPid_Crio(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		inputInspectData string
+		expectedPid      *string
+		expectErr        bool
+	}{
+		{
+			name:             "empty input",
+			inputInspectData: "",
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "empty json",
+			inputInspectData: "{}",
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "no pid cri-o 1.17",
+			inputInspectData: CRICTL_INSPECT_NO_PID_117,
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "valid pid cri-o 1.17",
+			inputInspectData: CRICTL_INSPECT_WITH_PID_117,
+			expectedPid:      stringPtr("69417"),
+			expectErr:        false,
+		},
+		{
+			name:             "no pid cri-o 1.18",
+			inputInspectData: CRICTL_INSPECT_NO_PID_118,
+			expectedPid:      nil,
+			expectErr:        true,
+		},
+		{
+			name:             "valid pid cri-o 1.18",
+			inputInspectData: CRICTL_INSPECT_WITH_PID_118,
+			expectedPid:      stringPtr("827137"),
+			expectErr:        false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert := assert.New(t)
+			bridge := runtime.NewCrioBridge()
+
+			extractedPid, err := bridge.ExtractPid(testCase.inputInspectData)
+
+			if testCase.expectErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+
+			assert.Equal(testCase.expectedPid, extractedPid)
+		})
+	}
 }

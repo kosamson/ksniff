@@ -35,13 +35,13 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
-var (
-	ksniffExample = "kubectl sniff hello-minikube-7c77b68cff-qbvsd -c hello-minikube"
-)
+var ksniffExample = "kubectl sniff hello-minikube-7c77b68cff-qbvsd -c hello-minikube"
 
-const minimumNumberOfArguments = 1
-const tcpdumpBinaryName = "static-tcpdump"
-const tcpdumpRemotePath = "/tmp/static-tcpdump"
+const (
+	minimumNumberOfArguments = 1
+	tcpdumpBinaryName        = "static-tcpdump"
+	tcpdumpRemotePath        = "/tmp/static-tcpdump"
+)
 
 var tcpdumpLocalBinaryPathLookupList []string
 
@@ -62,7 +62,6 @@ func NewKsniff(settings *config.KsniffSettings) *Ksniff {
 
 func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 	ksniffSettings := config.NewKsniffSettings(streams)
-
 	ksniff := NewKsniff(ksniffSettings)
 
 	cmd := &cobra.Command{
@@ -129,6 +128,7 @@ func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.Flags().DurationVarP(&ksniffSettings.UserSpecifiedPodCreateTimeout, "pod-creation-timeout", "",
 		1*time.Minute, "the length of time to wait for privileged pod to be created (e.g. 20s, 2m, 1h). "+
 			"A value of zero means the creation never times out.")
+	// TODO: should this be added as a viper config key?
 
 	cmd.Flags().StringVarP(&ksniffSettings.Image, "image", "", "",
 		"the privileged container image (optional)")
@@ -159,7 +159,6 @@ func NewCmdSniff(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
-
 	if len(args) < minimumNumberOfArguments {
 		_ = cmd.Usage()
 		return errors.New("not enough arguments")
@@ -170,6 +169,8 @@ func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
 		return errors.New("pod name is empty")
 	}
 
+	// is this really needed since cobra pflags are already
+	// bound to these settings struct fields?
 	o.settings.UserSpecifiedNamespace = viper.GetString("namespace")
 	o.settings.UserSpecifiedContainer = viper.GetString("container")
 	o.settings.UserSpecifiedInterface = viper.GetString("interface")
@@ -220,7 +221,7 @@ func (o *Ksniff) Complete(cmd *cobra.Command, args []string) error {
 
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{
-		CurrentContext: o.settings.UserSpecifiedKubeContext,
+		CurrentContext: o.settings.UserSpecifiedKubeContext, // shouldn't this be currentContext?
 	}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	o.restConfig, err = kubeConfig.ClientConfig()
@@ -395,7 +396,6 @@ func (o *Ksniff) setupSignalHandler() chan interface{} {
 			case <-exit:
 				return
 			}
-
 		}
 	}()
 	return exit

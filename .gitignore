@@ -1,2 +1,4 @@
 kubectl-sniff
 static-tcpdump
+coverage.out
+coverage.html

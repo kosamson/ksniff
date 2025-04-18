@@ -8,11 +8,20 @@ var SupportedContainerRuntimes = []string{
 	"containerd",
 }
 
+type TcpDumpArguments struct {
+	ContainerId  *string
+	NetInterface string
+	Filter       string
+	Pid          *string
+	SocketPath   string
+	TcpdumpImage string
+}
+
 type ContainerRuntimeBridge interface {
 	NeedsPid() bool
 	BuildInspectCommand(containerId string) []string
 	ExtractPid(inspection string) (*string, error)
-	BuildTcpdumpCommand(containerId *string, netInterface string, filter string, pid *string, socketPath string, tcpdumpImage string) []string
+	BuildTcpdumpCommand(TcpDumpArguments) []string
 	BuildCleanupCommand() []string
 	GetDefaultImage() string
 	GetDefaultTCPImage() string
